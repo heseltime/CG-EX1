@@ -1,9 +1,11 @@
-/*---------------------------------------------------------------------------
+ /*---------------------------------------------------------------------------
+ * Title: Maze/Ex 2 (HUE)
+ * Objective: Follow the cat to find the cheese, escape the Maze.
+ * Instructions: Click in vicinity of the cheese, 
+ *      the pretend the cat is following you -- RUN!
+ * BASED ON:
  * Title: Computer Graphics Lab 2 - Meshes and Transformations
  * Author: Christoph Anthes
- * Version: 1.0 (SS22)
- * Time to complete: 90 minutes
- * Additional material: slides, course notes
  *------------------------------------------------------------------------- */
 #include "GL/freeglut.h"
 #include "math.h"
@@ -11,147 +13,215 @@
 
 int windowid; // the identifier of the GLUT window
 
-GLfloat matrot[][4] = {          // a rotation matrix
-  { 0.707f, 0.707f, 0.0f, 0.0f}, // it performs a rotation around z
-  {-0.707f, 0.707f, 0.0f, 0.0f}, // in 45 degrees
-  { 0.0f,   0.0f,   1.0f, 0.0f},
-  { 0.0f,   0.0f,   0.0f, 1.0f}
-};
-
-GLfloat mattrans[][4] = {        // a translation matrix
-  { 1.0f, 0.0f,  0.0f, 0.0f},    // it performs a translation along the
-  { 0.0f, 1.0f,  0.0f, 0.0f},    // x-axis of 0.5 units and along
-  { 0.0f, 0.0f,  1.0f, 0.0f},    // the z-axis of -1.5 units
-  { 0.5f, 0.0f, -1.5f, 1.0f}
-};
-
-// Navigation variables - required for TASK 5
-GLfloat navX = 0.0f;
-GLfloat navZ = 5.0f;
-
-// Angle for cube rotation - required for TASK 6
-GLfloat angleCube = 0.0f;        //angle for cube1
+// Central Datastructure for the Maze: for Task 2
+#define SIDE 30
 
 // Camera motion variables - required for HOMEOWRK HELPER
 GLdouble angle = 0.0f;          // angle of rotation for the camera direction
-GLdouble lx = 0.0f, lz = -1.0f; // actual vector representing the camera's
+GLdouble lx = 0.0f, ly = 0.0f, lz = -1.0f; // actual vector representing the camera's
 // direction
-GLdouble x = 0.0f, z = 5.0f;    // XZ position of the camera
+GLdouble x = (float)SIDE / 2, y = 1.0f, z = (float)SIDE / 2;    // XZ position of the camera
 
-// remeber coords
-int lastXMousePosition, lastYMousePosition;
+int maze[SIDE][SIDE]{
+    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,1,1,1,1,1,1,1,1,1,1,0,0,1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,0,0,0,1,1,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,0,0,1},
+    {1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,1,0,0,1},
+    {1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1},
+    {1,0,0,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1},
+    {1,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1},
+    {1,0,0,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+};
+
+#define _USE_MATH_DEFINES
+
+/*
+*/
+//
+// Actions (Task 1.4)
+//
+
+void jump_down(int val) {
+    float fraction = 0.1f;
+    y -= val * fraction;
+}
+
+void jump(int val) {
+    float fraction = 0.1f;
+    y += val * fraction;
+    glutTimerFunc(500, jump_down, val);
+}
+
+bool is_occupied(float x, float z) {
+    // map x/z coords to maze[SIDE = 30][SIDE = 30]
+    // maze is drawn from the origin and made up of 1x1 cubes, so ...
+    int maze_x = (int)x;
+    int maze_z = (int)z;
+    /* what is happening is:
+    printf("maze_x is %d, maze_z is %d \n", maze_x, maze_z);
+    printf("is wall? %d \n", maze[maze_x][maze_z]);*/
+    return maze[maze_x][maze_z];
+}
 
 /*
 */
 //Taken from http://www.lighthouse3d.com/tutorials/glut-tutorial/keyboard-example-moving-around-the-world/
-// (template 2)
+// (template 2: Camera controls)
 void processSpecialKeys(int key, int xcoor, int ycoor) {
-    float fraction = 0.1f;
+    float fraction = 0.5f;
+
+    /*
+    */
+    // 
+    // BLOCKED DETECTION (TASK 2.1)
+    // for back and forward movement, see below
+    //
+    float new_x = 0.0f;
+    float new_z = 0.0f;
 
     switch (key) {
     case GLUT_KEY_LEFT:
-        angle -= 0.01f;
+        angle -= 0.05f;
         lx = sin(angle);
         lz = -cos(angle);
         break;
     case GLUT_KEY_RIGHT:
-        angle += 0.01f;
+        angle += 0.05f;
         lx = sin(angle);
         lz = -cos(angle);
         break;
     case GLUT_KEY_UP:
-        x += lx * fraction;
-        z += lz * fraction;
+        new_x = lx * fraction;
+        new_z = lz * fraction;
+        if (!is_occupied(x + new_x, z + new_z)) {
+            x += new_x;
+            z += new_z;
+            // otherwise do nothing (maybe even rebuff <-- POSS. IMPROVEMENT)
+        }
         break;
     case GLUT_KEY_DOWN:
-        x -= lx * fraction;
-        z -= lz * fraction;
+        new_x = lx * fraction;
+        new_z = lz * fraction;
+        if (!is_occupied(x - new_x, z - new_z)) {
+            x -= new_x;
+            z -= new_z;
+            // otherwise do nothing (maybe even rebuff <-- POSS. IMPROVEMENT)
+        }
         break;
     }
 }
-/* Here we have an example to draw a bit nicer with our limited OpenGL
-   knowledge. First filled objects are drawn in black, at a smaller size.
-   Then the same object outlines are drawn in full size full size. Both
-   will be compared in the depth buffer and the front outlines will
-   remain. */
-void drawObjectAlt(void) {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glPushMatrix(); //set where to start the current object transformations  
-    glRotatef(angleCube, 0.0, 1.0, 0.0);
-    glColor3f(0.0, 0.0, 0.0); //change cube1 to black
-    glScalef(0.99, 0.99, 0.99);
-    glutSolidCube(0.5);
-    glTranslatef(0, 0.5, 0); //move cube1 to the right
-    glScalef(0.99, 0.99, 0.99);
-    glutSolidSphere(0.25f, 20, 20);
-    glPopMatrix();
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glPushMatrix(); //set where to start the current object transformations  
-    glRotatef(angleCube, 0.0, 1.0, 0.0);
-    glColor3f(0.0, 1.0, 0.0); //change cube1 to Green
-    glutSolidCube(0.5);
-    glTranslatef(0, 0.5, 0); //move cube1 to the right
-    glutSolidSphere(0.25f, 20, 20);
-    glPopMatrix();
-}
-
-/* This is the keyboard function which is used to react on keyboard input.
-   It has to be registered as a callback in glutKeyboardFunc. Once a key is
-   pressed it will be invoked and the keycode as well as the current mouse
-   coordinates relative to the window origin are passed.
-   It acts on our FPS controls 'WASD' and the escape key. A simple output
-   to the keypress is printed in the console in case of 'WASD'. In case of
-   ESC the window is destroyed and the application is terminated. */
+/* 'WASD'-Movement, compare template */
 void keyboard(unsigned char key, int xcoor, int ycoor) {
-    printf("keyp");
+    float fraction = 0.5f;
+    //printf("x is %f, z is %f \n", x, z);
+
+    /*
+    */
+    // 
+    // BLOCKED DETECTION (TASK 2.1)
+    //
+    float new_x = 0.0f;
+    float new_z = 0.0f; // modulated by is_occupied boolean function
 
     switch (key) {
     case 'a':
-        navX -= 0.1f; // TASK 5
+        new_x = fraction * cos(angle);
+        new_z = fraction * sin(angle); 
+        if (!is_occupied(x-new_x, z-new_z)) {
+            x -= new_x;
+            z -= new_z; 
+            // otherwise do nothing (maybe even rebuff <-- POSS. IMPROVEMENT)
+        }
         break;
     case 'd':
-        navX += 0.1f; // TASK 5
+        new_x = fraction * cos(angle);
+        new_z = fraction * sin(angle); 
+        if (!is_occupied(x + new_x, z + new_z)) {
+            x += new_x;
+            z += new_z;
+            // otherwise do nothing (maybe even rebuff <-- POSS. IMPROVEMENT)
+        }
         break;
     case 'w':
-        navZ -= 0.1f; // TASK 5
+        new_x = lx * fraction;
+        new_z = lz * fraction;
+        if (!is_occupied(x + new_x, z + new_z)) {
+            x += new_x;
+            z += new_z;
+            // otherwise do nothing (maybe even rebuff <-- POSS. IMPROVEMENT)
+        }
         break;
     case 's':
-        navZ += 0.1f; // TASK 5
+        new_x = lx * fraction;
+        new_z = lz * fraction;
+        if (!is_occupied(x - new_x, z - new_z)) {
+            x -= new_x;
+            z -= new_z;
+            // otherwise do nothing (maybe even rebuff <-- POSS. IMPROVEMENT)
+        }
+        break;
+    /*
+    */
+    // 
+    // JUMP FEATURE (TASK 1.4)
+    //
+    case ' ': 
+        jump(25);
         break;
     case 27: // escape key
         glutDestroyWindow(windowid);
         exit(0);
         break;
     }
-    glutPostRedisplay();
+    //glutPostRedisplay();
 }
 
+// TASK 3(.0)
 void mouse(int x, int y) {
     float fraction = 0.01f;
 
-    if (x < lastXMousePosition) {
+    // remeber coords
+    static int lastXMousePosition, lastYMousePosition;
+    static bool mouse_warped = false; 
+
+    if (mouse_warped) {
+        mouse_warped = false;
+        return;
+    }
+
+    if (x < (glutGet(GLUT_WINDOW_WIDTH) / 2))
         angle -= fraction;
-        lx = sin(angle);
-        //lz = -cos(angle);
-    }
-    else {
+    else
         angle += fraction;
-        lx = sin(angle);
-        //lz = -cos(angle);
-    }
 
-    if (y < lastYMousePosition) {
-        // no up/y vect manipulation here
-    }
-    else {
-        // no up/y vect manipulation here
-    }
+    lx = sin(angle);
+    lz = -cos(angle);
 
-    glutPostRedisplay();
+    //glutPostRedisplay();
 
     lastXMousePosition = x;
     lastYMousePosition = y;
+
+    glutWarpPointer((glutGet(GLUT_WINDOW_WIDTH) / 2), (glutGet(GLUT_WINDOW_HEIGHT) / 2));
+    mouse_warped = true;
 }
 
 /* This function should be called when the window is resized. It has to be
@@ -170,85 +240,191 @@ void reshapeFunc(int xwidth, int yheight) {
     glViewport(0, 0, xwidth, yheight);  // Use the whole window for rendering
 }
 
-/* This is our first display function it will be used for drawing a 2D
-   triangle. The background is set to black and cleared, the current drawing
-   colour is set and the vertices of the triangle are defined. At the end the
-   buffers are flipped. */
-void renderPrimitives(void) {
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // set background colour to black 
-    glClear(GL_COLOR_BUFFER_BIT);         // clear the colour buffer
+/*
+*/
+//
+// DRAW METHODS
+//
 
-    glColor3f(0.1f, 0.2f, 0.3f);        // set the colour to grey
-    glBegin(GL_TRIANGLES);              // drawing using triangles
-    glVertex3f(0.0f, 1.0f, 0.0f);      // top
-    glVertex3f(-1.0f, -1.0f, 0.0f);    // bottom left
-    glVertex3f(1.0f, -1.0f, 0.0f);    // bottom right
-    glEnd();                            // finished drawing the triangle
+// 
+// MAZE
+//
 
-    /* Example 1 - Slide 5 */
-    glColor3f(1.0f, 0.0f, 0.0f);        // red
-    glBegin(GL_QUADS);                  // drawing using quads
-    glVertex2f(-0.5f, -0.5f);          // bottom left
-    glVertex2f(0.5f, -0.5f);          // bottom right
-    glVertex2f(0.5f, 0.5f);            // top right
-    glVertex2f(-0.5f, 0.5f);          // top left
+void drawFloor() {
+    glTranslatef(SIDE / 2, 0, SIDE / 2); // position in the middle of the maze
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glBegin(GL_QUADS);
+    glColor3f(0.2, 0.2, 0.2);
+    glVertex3f(-SIDE/2, 0, -SIDE/2);
+    glVertex3f(-SIDE/2, 0, SIDE/2);
+    glVertex3f(SIDE/2, 0, SIDE/2);
+    glVertex3f(SIDE/2, 0, -SIDE/2);
     glEnd();
-
-    /* Example 2 - Slide 5 */
-    glBegin(GL_QUADS);                  // drawing using quads
-    glColor3f(1.0f, 0.0f, 0.0f);      // red
-    glVertex2f(-0.5f, -0.5f);          // bottom left
-    glColor3f(0.0f, 1.0f, 0.0f);      // green
-    glVertex2f(0.5f, -0.5f);          // bottom right
-    glColor3f(0.0f, 0.0f, 1.0f);      // blue
-    glVertex2f(0.5f, 0.5f);            // top right
-    glColor3f(1.0f, 1.0f, 0.0f);      // yellow
-    glVertex2f(-0.5f, 0.5f);          // top left
-    glEnd();
-
-    // TASK 1:
-    glColor3f(1.0f, 1.0f, 0.0f);  // yellow
-    glBegin(GL_POLYGON);          // these vertices form a closed polygon
-    glVertex2f(0.4f, 0.2f);
-    glVertex2f(0.6f, 0.2f);
-    glVertex2f(0.7f, 0.4f);
-    glVertex2f(0.6f, 0.6f);
-    glVertex2f(0.4f, 0.6f);
-    glVertex2f(0.3f, 0.4f);
-    glEnd();
-    glutSwapBuffers();
+    glTranslatef(-SIDE / 2, 0, -SIDE / 2); // position in the middle of the maze
 }
 
-/* This function will be used for composited objects and will be called from a
-   display function. */
-void drawObject(void) { // TASK 4:
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glPushMatrix(); //set where to start the current object transformations  
-    glRotatef(angleCube, 0.0f, 1.0f, 0.0f);
-    glColor3f(0.0f, 1.0f, 0.0f);    // change cube1 to green
-    glutSolidCube(0.5f);            // cube
-    glTranslatef(0.0f, 0.5f, 0.0f); // move cube1 to the top
-    glutSolidSphere(0.25f, 20, 20); // sphere
+void drawWall(int h) {
+    glPushMatrix();
+    glTranslatef(0, -1.0f, 0);
+    for (size_t i = 0; i < h; i++) {
+        glTranslatef(0, 1.0f, 0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glColor3f(0.12, 0.10, 0.55);
+        glutSolidCube(1);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glColor3f(1, 1, 1);
+        glutSolidCube(1);
+    }
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glTranslatef(0, (float) -h, 0);
     glPopMatrix();
 }
 
-/* This function will replace the previous display function and will be used
-   for scene setup. */
-void render3DScene(void) {
-    glMatrixMode(GL_MODELVIEW);    // set the ModelView Matrix for scene setup
-    glClear(GL_COLOR_BUFFER_BIT);
+void drawMaze() {
+    glTranslatef(-1.0f, 0, 0);
+    for (int i = 0; i < SIDE; i++) {
+        glTranslatef(1.0f, 0, 0); // scan x
+        for (int j = 0; j < SIDE; j++) {
+            glTranslatef(0, 0, 1.0); // scan z
 
-    glLoadIdentity();
-    glColor3f(0.0f, 1.0f, 0.0f);  // green
-    glTranslatef(0.0f, 0.0f, -1.5f);
-    glRotatef(45, 1.0f, 0.0f, 0.0f);
-    glutSolidCube(0.5f);
+            if (maze[i][j] == 1) {
+                drawWall(3);
+            }
+        }
+        glTranslatef(0, 0, -SIDE); // line back
+    }
+}
 
-    // TASK 2:
-    glutSolidSphere(0.1f, 20, 20);
-    glutSolidTorus(0.6f, 1.4f, 20, 20);
 
-    glutSwapBuffers();
+//
+// MAZE CONTENT
+//
+// A cat from triangles/pytramids for ears and lines for whiskers follows.
+// This is one cat but from two sets of objects (Aufgabe 1.1), each made of base objects:
+//      The pyramids for ears from triangles
+//      The whiskers made from 6 lines
+
+void drawPyramid(float x, float y, float z, int s) {
+    glTranslatef(x, y, z);
+
+    glBegin(GL_TRIANGLES);           
+
+    // Front
+    glColor3f(s*1.0f, 0.0f, 0.0f);     // Red
+    glVertex3f(0.0f, s*1.0f, 0.0f);
+    glColor3f(0.0f, s*1.0f, 0.0f);     // Green
+    glVertex3f(-s*1.0f, -s*1.0f, s*1.0f);
+    glColor3f(0.0f, 0.0f, s*1.0f);     // Blue
+    glVertex3f(s*1.0f, -s*1.0f, s*1.0f);
+
+    // Right
+    glColor3f(s*1.0f, 0.0f, 0.0f);     // Red
+    glVertex3f(0.0f, s*1.0f, 0.0f);
+    glColor3f(0.0f, 0.0f, s*1.0f);     // Blue
+    glVertex3f(1.0f, -s*1.0f, s*1.0f);
+    glColor3f(0.0f, s*1.0f, 0.0f);     // Green
+    glVertex3f(s*1.0f, -s*1.0f, -s*1.0f);
+
+    // Back
+    glColor3f(s*1.0f, 0.0f, 0.0f);     // Red
+    glVertex3f(0.0f, s*1.0f, 0.0f);
+    glColor3f(0.0f, s*1.0f, 0.0f);     // Green
+    glVertex3f(s*1.0f, -s*1.0f, -s*1.0f);
+    glColor3f(0.0f, 0.0f, s*1.0f);     // Blue
+    glVertex3f(-s*1.0f, -s*1.0f, -s*1.0f);
+
+    // Left
+    glColor3f(s*1.0f, 0.0f, 0.0f);       // Red
+    glVertex3f(0.0f, s*1.0f, 0.0f);
+    glColor3f(0.0f, 0.0f, s*1.0f);       // Blue
+    glVertex3f(-s*1.0f, -s*1.0f, -s*1.0f);
+    glColor3f(0.0f, s*1.0f, 0.0f);       // Green
+    glVertex3f(-s*1.0f, -s*1.0f, s*1.0f);
+
+    glEnd();
+
+    glTranslatef(-x, -y, -z);  // move back
+}
+
+void drawLine(float x, float y, float z, float xD, float yD, float zD, int s) { // second set of params are deltas
+    glTranslatef(x, y, z);
+
+    glBegin(GL_LINES);
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    glVertex3f(s*xD, s*yD, s*zD);
+    glEnd();
+
+    glTranslatef(-x, -y, -z);  // move back
+}
+
+
+void drawCat(float d) {
+    // ears
+    drawPyramid(-5.0f, 5.0f, d, 2);
+    drawPyramid(5.0f, 5.0f, d, 2);
+
+    // whiskers right
+    drawLine(0.1f, 1.0f, d, 5.0f, 3.0f, 1.0f, 3); 
+    drawLine(0.2f, 0.8f, d, 5.0f, 1.0f, 0.5f, 3); 
+    drawLine(0.1f, 0.6f, d, 5.0f, -1.0f, 1.0f, 3); 
+
+    // whiskers left
+    drawLine(-0.1f, 1.0f, d, -5.0f, 3.0f, 1.0f, 3);
+    drawLine(-0.2f, 0.8f, d, -5.0f, 1.0f, 0.5f, 3);
+    drawLine(-0.1f, 0.6f, d, -5.0f, -1.0f, 1.0f, 3);
+
+    // 
+    // (it's an abstract cat.)
+    //
+}
+
+//
+// There is also a cirle/cylinder of cheese, using quad strip primitive
+// (lots of vertices, for Augabe 1.2)
+
+void drawCylinder(GLfloat radius,
+    GLfloat height,
+    GLubyte R,
+    GLubyte G,
+    GLubyte B)
+{
+    GLfloat x = 0.0;
+    GLfloat y = 0.0;
+    GLfloat angle = 0.0;
+    GLfloat angle_stepsize = 0.1;
+
+    /** Draw the tube */
+    glColor3ub(R - 40, G - 40, B - 40);
+    glBegin(GL_QUAD_STRIP);
+    angle = 0.0;
+    while (angle < 2 * 3.14159265358979323846) {
+        x = radius * cos(angle);
+        y = radius * sin(angle);
+        glVertex3f(x, y, height);
+        glVertex3f(x, y, 0.0);
+        angle = angle + angle_stepsize;
+    }
+    glVertex3f(radius, 0.0, height);
+    glVertex3f(radius, 0.0, 0.0);
+    glEnd();
+
+    /** Draw the circle on top of cylinder */
+    glColor3ub(R, G, B);
+    glBegin(GL_POLYGON);
+    angle = 0.0;
+    while (angle < 2 * 3.14159265358979323846) {
+        x = radius * cos(angle);
+        y = radius * sin(angle);
+        glVertex3f(x, y, height);
+        angle = angle + angle_stepsize;
+    }
+    glVertex3f(radius, 0.0, height);
+    glEnd();
+}
+
+void drawCheese(int s) {
+    drawCylinder(s * 1.0f, s * 1.0f, 254, 226, 62); // r, h, RGB for warm yellow
 }
 
 /* This function will replace the previous display function and will be used
@@ -259,29 +435,6 @@ void renderCube(void) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     glLoadIdentity();
-    //glLoadMatrixf(&mattrans[0][0]);  // slide 16
-    //glLoadMatrixf(&matrot[0][0]);    // slide 17
-
-    /* Example 1 - Slide 18 */
-    //glMultMatrixf(&mattrans[0][0]);  // translate
-    //glMultMatrixf(&matrot[0][0]);    // rotate
-
-    /* Example 2 - Slide 18 */
-    //glMultMatrixf(&matrot[0][0]);    // rotate
-    //glMultMatrixf(&mattrans[0][0]);  // translate
-
-    /* Example - Slide 19 */ // TASK: 3
-    //glScalef(2.0f, 2.0f, 1.0f);          // s
-    //glRotatef(45.0f, 0.0f, 0.0f, 1.0f);  // r
-    //glTranslatef(1.0f, 0.0f, 0.0f);      // t
-
-    /* Example - Slide 20 */
-    //glTranslatef(1.0f, 0.0f, 0.0f);      // t
-    //glRotatef(45.0f, 0.0f, 0.0f, 1.0f);  // r
-    //glScalef(2.0f, 2.0f, 1.0f);          // s
-
-    //glTranslatef(0.0f, 0.0f, -1.5f);
-    //glTranslatef(0.0f, 0.0f, -5.0f);  // we additionally move from camera
 
     // TASK 5:
 
@@ -290,22 +443,36 @@ void renderCube(void) {
     //    0.0f, 1.0f, 0.0f);     // up vector
 
     /* HOMEWORK HELPER */
-    gluLookAt(x, 1.0f, z,            // camera position
-      x + lx, 1.0f, z + lz,          // target position (at)
+    gluLookAt(x, y, z,            // camera position
+      x + lx, y + ly, z + lz,          // target position (at)
       0.0f, 1.0f, 0.0f);             // up vector (NO Y)
+
+    // CALL DRAW METHODS
+    // from origin
+    drawFloor();
+    drawMaze();
+
+    // in the middle of the maze
+    glTranslatef(-SIDE / 2, y, SIDE / 2);
+    drawCat(-7.0); // TASK 1.1
+    glTranslatef(SIDE / 2, y, -SIDE / 2);
+
+    glTranslatef(-SIDE / 2, y - 2, SIDE / 2 - 3);
+    drawCheese(1); // TASK 1.2
+    glTranslatef(SIDE / 2, y - 2, -SIDE / 2 + 3);
 
 
     // TASK 4:
-    glTranslatef(0.0f, 0.0f, -5.0f);
-    glutSolidCube(0.5);
-    glTranslatef(-1.0f, 0.0f, 0.0f);
-    drawObject();
+    //glTranslatef(0.0f, 0.0f, -5.0f);
+    //glutSolidCube(0.5);
+    //glTranslatef(-1.0f, 0.0f, 0.0f);
+    //drawObject();
     // drawObjectAlt(); // Helper to be used with drawObjectAlt
-    glTranslatef(-1.0f, 0.0f, 0.0f);
-    drawObject();
+    //glTranslatef(-1.0f, 0.0f, 0.0f);
+    //drawObject();
     // drawObjectAlt(); // Helper to be used with drawObjectAltt
-    glTranslatef(0.0f, 1.0f, 0.0f);
-    drawObject();
+    //glTranslatef(0.0f, 1.0f, 0.0f);
+    //drawObject();
     // drawObjectAlt(); // Helper to be used with drawObjectAlt
 
     glutSwapBuffers();
@@ -314,7 +481,10 @@ void renderCube(void) {
 /* This function will registered as a callback with glutIdleFunc. Here it will
    be constantly called and perform updates to realise an animation. */
 void idleFunc(void) {
-    angleCube += 0.1f; // TASK 6:
+    // IMPROVEMENT POSSIBILITY
+    // if jump, count up to some height
+    // if jump down, same
+
     glutPostRedisplay();
 }
 
@@ -334,8 +504,7 @@ int main(int argc, char** argv) {
     // register callbacks
     glutKeyboardFunc(keyboard);
     glutPassiveMotionFunc(mouse);
-    //glutDisplayFunc(renderPrimitives);// Part 1 - we simply render primitives
-    //glutDisplayFunc(render3DScene);  // Part 2 - we start with 3D scene setup
+    glutSetCursor(GLUT_CURSOR_NONE);
     glutReshapeFunc(reshapeFunc);    // Part 2 - keep reshape for all 3D parts
     glutDisplayFunc(renderCube);     // Part 3 - we play with transformations 
     glutIdleFunc(idleFunc);           // Part 4 - we perform basic animation 
