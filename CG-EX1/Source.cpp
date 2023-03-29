@@ -1,11 +1,14 @@
  /*---------------------------------------------------------------------------
- * Title: Maze/Ex 2 (HUE)
+ * Title: Mousetrap - Maze/Ex 2 (HUE)
  * Objective: Follow the cat to find the cheese, escape the Maze.
  * Instructions: Click in vicinity of the cheese, 
  *      the pretend the cat is following you -- RUN!
  * BASED ON:
  * Title: Computer Graphics Lab 2 - Meshes and Transformations
  * Author: Christoph Anthes
+ * 
+ * COMPLETED SAVE THE ANIMATION (JUMP AND OBJECT REMOVAL ANIMATIONS).
+ * Worked by JACK HESELTINE, s2110307016.
  *------------------------------------------------------------------------- */
 #include "GL/freeglut.h"
 #include "math.h"
@@ -21,6 +24,8 @@ GLdouble angle = 0.0f;          // angle of rotation for the camera direction
 GLdouble lx = 0.0f, ly = 0.0f, lz = -1.0f; // actual vector representing the camera's
 // direction
 GLdouble x = (float)SIDE / 2, y = 1.0f, z = (float)SIDE / 2;    // XZ position of the camera
+
+bool cheese_enabled = true;
 
 int maze[SIDE][SIDE]{
     {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
@@ -269,7 +274,7 @@ void drawWall(int h) {
     for (size_t i = 0; i < h; i++) {
         glTranslatef(0, 1.0f, 0);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glColor3f(0.12, 0.10, 0.55);
+        glColor3f(0.12, 0.10, 0);
         glutSolidCube(1);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -394,7 +399,7 @@ void drawCylinder(GLfloat radius,
     GLfloat angle = 0.0;
     GLfloat angle_stepsize = 0.1;
 
-    /** Draw the tube */
+    /* "Mantel" */
     glColor3ub(R - 40, G - 40, B - 40);
     glBegin(GL_QUAD_STRIP);
     angle = 0.0;
@@ -409,7 +414,7 @@ void drawCylinder(GLfloat radius,
     glVertex3f(radius, 0.0, 0.0);
     glEnd();
 
-    /** Draw the circle on top of cylinder */
+    /* top of cylinder */
     glColor3ub(R, G, B);
     glBegin(GL_POLYGON);
     angle = 0.0;
@@ -458,7 +463,8 @@ void renderCube(void) {
     glTranslatef(SIDE / 2, y, -SIDE / 2);
 
     glTranslatef(-SIDE / 2, y - 2, SIDE / 2 - 3);
-    drawCheese(1); // TASK 1.2
+    if (cheese_enabled) 
+        drawCheese(1); // TASK 1.2
     glTranslatef(SIDE / 2, y - 2, -SIDE / 2 + 3);
 
 
@@ -484,8 +490,41 @@ void idleFunc(void) {
     // IMPROVEMENT POSSIBILITY
     // if jump, count up to some height
     // if jump down, same
+    // similar for cheese animation 
+    // (jump and cheese animations not implemented.)
 
     glutPostRedisplay();
+}
+
+/*
+*/
+//
+// REMOVE ON MOUSE CLICK (TASK 3.1)
+bool is_target(float x, float z) {
+    // map x/z coords to maze[SIDE = 30][SIDE = 30]
+    // maze is drawn from the origin and made up of 1x1 cubes, so ...
+    int maze_x = (int)x;
+    int maze_z = (int)z;
+    //printf("clicking with %f and %f\n", x, z);
+    // target is defined in terms of the maze:
+    if (maze_x < 17 && maze_x > 10 && maze_z < 17 && maze_z > 11) {
+        return true;
+    }
+    return false;
+}
+
+void redrawWithoutCheese() {
+    // TODO w/ animation?
+    cheese_enabled = false; // cheese "picked up"
+        // it is possible to pick up the cheese right from the starting position
+        // for ease of testing.
+}
+
+void mouseClicks(int button, int state, int xClicked, int yClicked) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && is_target(x, z)) {
+        printf("You got the cheese, now RUN!\n");
+        redrawWithoutCheese();
+    }
 }
 
 /* This is our main method which will perform the setup of our first OpenGL
@@ -497,13 +536,14 @@ int main(int argc, char** argv) {
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowPosition(500, 500); // initial position of the window
     glutInitWindowSize(800, 600);     // initial size of the window
-    windowid = glutCreateWindow("OpenGL Window"); // create window
+    windowid = glutCreateWindow("Moustrap"); // create window
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     // glEnable(GL_DEPTH_TEST);       // Helper to be used with drawObjectAlt
 
     // register callbacks
     glutKeyboardFunc(keyboard);
     glutPassiveMotionFunc(mouse);
+    glutMouseFunc(mouseClicks);
     glutSetCursor(GLUT_CURSOR_NONE);
     glutReshapeFunc(reshapeFunc);    // Part 2 - keep reshape for all 3D parts
     glutDisplayFunc(renderCube);     // Part 3 - we play with transformations 
